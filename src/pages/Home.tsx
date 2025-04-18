@@ -27,7 +27,7 @@ type DashboardTab = 'feed' | 'messages' | 'search' | 'friends' | 'requests';
 
 const Home: React.FC = () => {
     const { user, logout, updateProfile, deleteAccount, isLoading: isAuthLoading } = useAuth();
-  const navigate = useNavigate();
+    const navigate = useNavigate();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState<DashboardTab>('feed');
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -157,10 +157,10 @@ const Home: React.FC = () => {
     // --- End Profile Edit Handlers ---
 
     // Handle logout button click
-  const handleLogout = () => {
-    logout(); 
-    navigate('/login');
-  };
+    const handleLogout = () => {
+        logout(); 
+        navigate('/login');
+    };
   
     // Helper function to render the active tab content
     const renderTabContent = () => {
@@ -194,7 +194,7 @@ const Home: React.FC = () => {
     const displayProfilePicUrl = profilePicturePreview || getProfilePictureUrl(user.profilePicture);
     console.log("[Home Render] displayProfilePicUrl:", displayProfilePicUrl);
 
-  return (
+    return (
         <div className="min-h-screen bg-gray-100">
             {/* --- Navigation Bar --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-10">
@@ -226,7 +226,7 @@ const Home: React.FC = () => {
                                 >
                                     <img
                                         src={user.profilePicture ? `https://myfeedsave-backend.onrender.com/uploads/${user.profilePicture}` : '/default-avatar.png'}
-                alt="Profile"
+                                        alt="Profile"
                                         className="w-8 h-8 rounded-full object-cover"
                                     />
                                     <span className="hidden sm:block">{user.name}</span>
@@ -235,19 +235,93 @@ const Home: React.FC = () => {
                                 {/* Profile Dropdown Menu */}
                                 {isProfileOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-              <button
-                onClick={handleLogout}
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileOpen(false);
+                                                setIsEditingProfile(true);
+                                            }}
                                             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                Logout
-              </button>
-            </div>
+                                        >
+                                            Edit Profile
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        >
+                                            Logout
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
                 </div>
             </nav>
+
+            {/* --- Profile Edit Modal --- */}
+            {isEditingProfile && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
+                        <form onSubmit={handleProfileUpdateSubmit}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={profileFormData.name}
+                                        onChange={handleProfileInputChange}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Mobile</label>
+                                    <input
+                                        type="text"
+                                        name="mobile"
+                                        value={profileFormData.mobile}
+                                        onChange={handleProfileInputChange}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleProfileFileChange}
+                                        className="mt-1 block w-full"
+                                    />
+                                    {profilePicturePreview && (
+                                        <img
+                                            src={profilePicturePreview}
+                                            alt="Profile Preview"
+                                            className="mt-2 h-20 w-20 rounded-full object-cover"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mt-6 flex justify-end space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={handleCancelProfileEdit}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isUpdatingProfile}
+                                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                    {isUpdatingProfile ? 'Updating...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* --- Tab Navigation --- */}
             <div className="bg-white shadow">
@@ -316,12 +390,12 @@ const Home: React.FC = () => {
                             <Messaging initialConversation={selectedConversation} />
                         ) : (
                             renderTabContent()
-        )}
-      </div>
+                        )}
+                    </div>
                 </div>
             </main>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default Home;
