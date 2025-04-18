@@ -7,7 +7,7 @@ import UserSearch from '../components/UserSearch';
 import FriendRequestsList from '../components/FriendRequestsList';
 import FriendsList from '../components/FriendsList';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Messaging from '../components/Messaging';
 
 // Helper function to get profile picture URL
@@ -27,8 +27,10 @@ type DashboardTab = 'feed' | 'messages' | 'search' | 'friends' | 'requests';
 
 const Home: React.FC = () => {
     const { user, logout, updateProfile, deleteAccount, isLoading: isAuthLoading } = useAuth();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState<DashboardTab>('feed');
+    const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     // --- State for Profile Editing ---
@@ -42,6 +44,26 @@ const Home: React.FC = () => {
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     // --- End State for Profile Editing ---
+
+    // Handle navigation state
+    useEffect(() => {
+        if (location.state) {
+            const { activeTab: tab, selectedConversation: conversation } = location.state as {
+                activeTab?: DashboardTab;
+                selectedConversation?: string;
+            };
+            
+            if (tab) {
+                setActiveTab(tab);
+            }
+            if (conversation) {
+                setSelectedConversation(conversation);
+            }
+            
+            // Clear the navigation state
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate, location.pathname]);
 
     // Effect to initialize profile form data when user loads
     useEffect(() => {
@@ -135,11 +157,11 @@ const Home: React.FC = () => {
     // --- End Profile Edit Handlers ---
 
     // Handle logout button click
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
-
+  const handleLogout = () => {
+    logout(); 
+    navigate('/login');
+  };
+  
     // Helper function to render the active tab content
     const renderTabContent = () => {
         switch (activeTab) {
@@ -172,7 +194,7 @@ const Home: React.FC = () => {
     const displayProfilePicUrl = profilePicturePreview || getProfilePictureUrl(user.profilePicture);
     console.log("[Home Render] displayProfilePicUrl:", displayProfilePicUrl);
 
-    return (
+  return (
         <div className="min-h-screen bg-gray-100">
             {/* --- Navigation Bar --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-10">
@@ -204,7 +226,7 @@ const Home: React.FC = () => {
                                 >
                                     <img
                                         src={user.profilePicture ? `https://myfeedsave-backend.onrender.com/uploads/${user.profilePicture}` : '/default-avatar.png'}
-                                        alt="Profile"
+                alt="Profile"
                                         className="w-8 h-8 rounded-full object-cover"
                                     />
                                     <span className="hidden sm:block">{user.name}</span>
@@ -213,13 +235,13 @@ const Home: React.FC = () => {
                                 {/* Profile Dropdown Menu */}
                                 {isProfileOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                                        <button
-                                            onClick={handleLogout}
+              <button
+                onClick={handleLogout}
                                             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                        >
-                                            Logout
-                                        </button>
-                                    </div>
+              >
+                Logout
+              </button>
+            </div>
                                 )}
                             </div>
                         </div>
@@ -290,12 +312,16 @@ const Home: React.FC = () => {
                 <div className="px-4 py-6 sm:px-0">
                     {/* Content Container */}
                     <div className="bg-white rounded-lg shadow p-6">
-                        {renderTabContent()}
-                    </div>
+                        {activeTab === 'messages' ? (
+                            <Messaging initialConversation={selectedConversation} />
+                        ) : (
+                            renderTabContent()
+        )}
+      </div>
                 </div>
             </main>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default Home;

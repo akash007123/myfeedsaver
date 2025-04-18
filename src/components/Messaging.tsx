@@ -30,10 +30,14 @@ interface Conversation {
     unreadCount: number;
 }
 
-const Messaging: React.FC = () => {
-    const { user } = useAuth();
+interface MessagingProps {
+    initialConversation?: string | null;
+}
+
+const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => {
+    const { user, token } = useAuth();
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+    const [selectedConversation, setSelectedConversation] = useState<string | null>(initialConversation);
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -42,7 +46,7 @@ const Messaging: React.FC = () => {
     const apiClient = axios.create({
         baseURL: 'https://myfeedsave-backend.onrender.com/api',
         headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${token}`
         }
     });
 
@@ -52,6 +56,11 @@ const Messaging: React.FC = () => {
             const response = await apiClient.get('/messages/conversations');
             if (response.data && Array.isArray(response.data.conversations)) {
                 setConversations(response.data.conversations);
+                
+                // If we have an initial conversation but no messages loaded yet
+                if (initialConversation && messages.length === 0) {
+                    fetchMessages(initialConversation);
+                }
             } else {
                 console.error('Invalid response format:', response.data);
                 toast.error('Invalid response from server');
