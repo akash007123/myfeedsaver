@@ -8,6 +8,7 @@ import FriendRequestsList from '../components/FriendRequestsList';
 import FriendsList from '../components/FriendsList';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import Messaging from '../components/Messaging';
 
 // Helper function to get profile picture URL
 const getProfilePictureUrl = (filename: string | null | undefined): string | null => {
@@ -22,12 +23,12 @@ const getProfilePictureUrl = (filename: string | null | undefined): string | nul
 };
 
 // Define tab types
-type DashboardTab = 'posts' | 'search' | 'friends' | 'requests';
+type DashboardTab = 'feed' | 'messages' | 'search' | 'friends' | 'requests';
 
 const Home: React.FC = () => {
     const { user, logout, updateProfile, deleteAccount, isLoading: isAuthLoading } = useAuth();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<DashboardTab>('posts');
+    const [activeTab, setActiveTab] = useState<DashboardTab>('feed');
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     // --- State for Profile Editing ---
@@ -142,13 +143,15 @@ const Home: React.FC = () => {
     // Helper function to render the active tab content
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'posts':
+            case 'feed':
                 return (
                     <PostProvider>
                         <CreatePost />
                         <PostFeed />
                     </PostProvider>
                 );
+            case 'messages':
+                return <Messaging />;
             case 'search':
                 return <UserSearch />;
             case 'friends':
@@ -229,14 +232,24 @@ const Home: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex space-x-8">
                         <button
-                            onClick={() => setActiveTab('posts')}
+                            onClick={() => setActiveTab('feed')}
                             className={`px-3 py-4 text-sm font-medium border-b-2 ${
-                                activeTab === 'posts'
+                                activeTab === 'feed'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                         >
-                            Posts
+                            Feed
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('messages')}
+                            className={`px-3 py-4 text-sm font-medium border-b-2 ${
+                                activeTab === 'messages'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            Messages
                         </button>
                         <button
                             onClick={() => setActiveTab('search')}
