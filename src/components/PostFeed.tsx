@@ -20,6 +20,7 @@ const PostFeed: React.FC = () => {
         isPublic: false
     });
     const [editMedia, setEditMedia] = useState<File | null>(null);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
     useEffect(() => {
         fetchUserPosts();
@@ -70,16 +71,46 @@ const PostFeed: React.FC = () => {
         }
     };
 
-    if (loading) return <div>Loading posts...</div>;
-    if (error) return <div>Error: {error}</div>;
+    const handleImageClick = (imageUrl: string) => {
+        setLightboxImage(imageUrl);
+    };
+
+    const closeLightbox = () => {
+        setLightboxImage(null);
+    };
+
+    if (loading) return <div className="flex justify-center items-center h-64">Loading posts...</div>;
+    if (error) return <div className="text-red-500 text-center p-4">Error: {error}</div>;
 
     return (
         <div className="space-y-6">
+            {/* Lightbox Modal */}
+            {lightboxImage && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+                    onClick={closeLightbox}
+                >
+                    <div className="relative max-w-4xl w-full" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                        <img 
+                            src={lightboxImage} 
+                            alt="Enlarged view" 
+                            className="max-h-[90vh] w-auto mx-auto"
+                        />
+                        <button 
+                            onClick={closeLightbox}
+                            className="absolute top-4 right-4 text-white text-2xl hover:text-gray-300"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {posts.map(post => (
-                <div key={post._id} className="bg-white rounded-lg shadow-md p-4">
+                <div key={post._id} className="bg-white rounded-lg shadow-md overflow-hidden">
                     {editingPost === post._id ? (
                         // Edit Form
-                        <div className="space-y-4">
+                        <div className="p-4 space-y-4">
                             <textarea
                                 value={editForm.description}
                                 onChange={(e) => setEditForm(prev => ({
@@ -125,37 +156,50 @@ const PostFeed: React.FC = () => {
                     ) : (
                         // Display Post
                         <>
-                            {post.mediaType === 'image' ? (
-                                <img
-                                    src={`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`}
-                                    alt="Post"
-                                    className="w-full h-64 object-cover rounded-lg mb-4"
-                                />
-                            ) : (
-                                <video
-                                    src={`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`}
-                                    controls
-                                    className="w-full h-64 object-cover rounded-lg mb-4"
-                                />
-                            )}
-                            <p className="text-gray-800 mb-4">{post.description}</p>
-                            <div className="flex justify-between items-center text-sm text-gray-500">
-                                <span>
-                                    {new Date(post.createdAt).toLocaleDateString()}
-                                </span>
-                                <div className="space-x-2">
-                                    <button
-                                        onClick={() => handleEdit(post)}
-                                        className="text-blue-500 hover:text-blue-600"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(post._id)}
-                                        className="text-red-500 hover:text-red-600"
-                                    >
-                                        Delete
-                                    </button>
+                            <div className="relative">
+                                {post.mediaType === 'image' ? (
+                                    <img
+                                        src={`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`}
+                                        alt="Post"
+                                        className="w-full h-auto max-h-[600px] object-contain cursor-pointer"
+                                        onClick={() => handleImageClick(`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`)}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                                            (e.target as HTMLImageElement).classList.add('opacity-50');
+                                        }}
+                                    />
+                                ) : (
+                                    <video
+                                        src={`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`}
+                                        controls
+                                        className="w-full h-auto max-h-[600px]"
+                                        onError={(e) => {
+                                            (e.target as HTMLVideoElement).poster = '/placeholder-video.png';
+                                            (e.target as HTMLVideoElement).classList.add('opacity-50');
+                                        }}
+                                    />
+                                )}
+                            </div>
+                            <div className="p-4">
+                                <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.description}</p>
+                                <div className="flex justify-between items-center text-sm text-gray-500">
+                                    <span>
+                                        {new Date(post.createdAt).toLocaleDateString()}
+                                    </span>
+                                    <div className="space-x-2">
+                                        <button
+                                            onClick={() => handleEdit(post)}
+                                            className="text-blue-500 hover:text-blue-600"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(post._id)}
+                                            className="text-red-500 hover:text-red-600"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </>

@@ -10,8 +10,8 @@ interface User {
   profilePicture: string | null; 
 }
 
-// --- Add Friend-related types ---
-interface FriendRequestUser { // User info for requests/friends lists
+
+interface FriendRequestUser { 
     _id: string;
     name: string;
     email: string;
