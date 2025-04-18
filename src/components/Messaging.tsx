@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { Manager } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 interface Message {
     _id: string;
@@ -44,7 +45,7 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
     const [loading, setLoading] = useState(true);
     const [showConversations, setShowConversations] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const socketRef = useRef<any>(null);
+    const socketRef = useRef<typeof Socket | null>(null);
 
     const apiClient = axios.create({
         baseURL: 'https://myfeedsave-backend.onrender.com/api',
@@ -55,24 +56,50 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
 
     // Initialize WebSocket connection
     useEffect(() => {
-        if (user) {
-            // Connect to WebSocket server
+        if (user && token) {
+            console.log('Initializing WebSocket connection...');
+            
+            // Connect to WebSocket server with proper configuration
             const manager = new Manager('https://myfeedsave-backend.onrender.com', {
                 auth: {
                     token: token
-                }
+                },
+                transports: ['websocket'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000
             });
+
             socketRef.current = manager.socket('/');
+
+            // Connection event handlers
+            socketRef.current.on('connect', () => {
+                console.log('WebSocket connected successfully');
+            });
+
+            socketRef.current.on('connect_error', (error: any) => {
+                console.error('WebSocket connection error:', error);
+            });
 
             // Listen for new messages
             socketRef.current.on('newMessage', (message: Message) => {
-                setMessages(prev => [...prev, message]);
+                console.log('Received new message:', message);
+                setMessages(prev => {
+                    // Check if message already exists to prevent duplicates
+                    if (!prev.some(msg => msg._id === message._id)) {
+                        return [...prev, message];
+                    }
+                    return prev;
+                });
+                
                 // Update conversations list
                 fetchConversations();
             });
 
             // Listen for message read status
             socketRef.current.on('messageRead', (data: { messageId: string, read: boolean }) => {
+                console.log('Message read status updated:', data);
                 setMessages(prev => prev.map(msg => 
                     msg._id === data.messageId ? { ...msg, read: data.read } : msg
                 ));
@@ -80,6 +107,7 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
 
             // Cleanup on unmount
             return () => {
+                console.log('Cleaning up WebSocket connection');
                 if (socketRef.current) {
                     socketRef.current.disconnect();
                 }
@@ -172,6 +200,10 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
 
             // Emit the message through WebSocket
             if (socketRef.current) {
+                console.log('Emitting message through WebSocket:', {
+                    message: response.data.data,
+                    receiverId: selectedConversation
+                });
                 socketRef.current.emit('sendMessage', {
                     message: response.data.data,
                     receiverId: selectedConversation
