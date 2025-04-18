@@ -11,7 +11,7 @@ interface FriendUser {
 // Helper function (can be moved to a utils file)
 const getProfilePictureUrl = (filename: string | null | undefined): string | null => {
     if (!filename) return null;
-    return `http://localhost:5000/uploads/${filename}`; // Adjust if path differs
+    return `https://myfeedsave-backend.onrender.com/uploads/${filename}`; // Adjust if path differs
 };
 
 
@@ -48,7 +48,7 @@ const FriendsList: React.FC = () => {
                     {friends.map(friend => (
                         <div key={friend._id} className="bg-white rounded-lg shadow p-4 flex items-center space-x-4">
                             <img
-                                src={friend.profilePicture ? `http://localhost:5000/uploads/${friend.profilePicture}` : '/default-avatar.png'}
+                                src={friend.profilePicture ? `https://myfeedsave-backend.onrender.com/uploads/${friend.profilePicture}` : '/default-avatar.png'}
                                 alt={friend.name}
                                 className="w-12 h-12 rounded-full object-cover"
                             />

@@ -147,12 +147,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // --- API Client (ensure token is included) ---
   const apiClient = React.useMemo(() => {
     const instance = axios.create({
-      baseURL: 'http://localhost:5000/api', // Base URL for API calls
+      baseURL: 'https://myfeedsave-backend.onrender.com/api', // Base URL for API calls
     });
 
     // Add a request interceptor to include the token
     instance.interceptors.request.use((config) => {
-      const storedToken = getToken(); // Get token from localStorage helper
+      const storedToken = getToken(); 
       if (storedToken) {
         config.headers.Authorization = `Bearer ${storedToken}`;
       }
@@ -162,10 +162,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return instance;
-  }, []); // Recreate only if needed, though token changes might need update
+  }, []); 
 
 
-  // --- Friend System Functions ---
   const searchUsers = async (query: string): Promise<FriendRequestUser[]> => {
     try {
       const response = await apiClient.get('/friends/search', { params: { q: query } });
@@ -238,7 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log("[AuthContext Login] Attempting login for:", email);
     try {
-      const res = await axios.post<{ token: string, user: User }>('http://localhost:5000/api/auth/login', { email, password });
+      const res = await axios.post<{ token: string, user: User }>('https://myfeedsave-backend.onrender.com/api/auth/login', { email, password });
       console.log("[AuthContext Login] API Response Status:", res.status);
       // console.log("[AuthContext Login] API Response Data:", res.data); // Maybe too verbose?
 
@@ -274,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (formData: FormData): Promise<void> => {
     console.log("[AuthContext Signup] Attempting signup...");
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/signup', formData, {
+      const res = await axios.post('https://myfeedsave-backend.onrender.com/api/auth/signup', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       console.log("[AuthContext Signup] Signup API successful:", res.data?.message || 'OK');
@@ -306,7 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Note: Axios default header should already include the token
       const res = await axios.put<{ message: string, user: User }>(
-        'http://localhost:5000/api/auth/profile',
+        'https://myfeedsave-backend.onrender.com/api/auth/profile',
         formData, // Send FormData directly (handles file uploads)
         {
           headers: {
@@ -346,7 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     console.log("[AuthContext DeleteAccount] Attempting account deletion...");
      try {
-      const res = await axios.delete('http://localhost:5000/api/auth/profile'); // Default headers include token
+      const res = await axios.delete('https://myfeedsave-backend.onrender.com/api/auth/profile'); // Default headers include token
 
       if (res.status === 200) {
          console.log("[AuthContext DeleteAccount] Deletion successful:", res.data.message);

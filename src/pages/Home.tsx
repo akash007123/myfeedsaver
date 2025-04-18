@@ -16,7 +16,7 @@ const getProfilePictureUrl = (filename: string | null | undefined): string | nul
         return null;
     }
     // This URL must match the backend configuration in server.js
-    const url = `http://localhost:5000/uploads/${filename}`;
+    const url = `https://myfeedsave-backend.onrender.com/uploads/${filename}`;
     console.log("[getProfilePictureUrl] Generated URL:", url);
     return url;
 };
@@ -200,7 +200,7 @@ const Home: React.FC = () => {
                                     className="flex items-center space-x-2 focus:outline-none"
                                 >
                                     <img
-                                        src={user.profilePicture ? `http://localhost:5000/uploads/${user.profilePicture}` : '/default-avatar.png'}
+                                        src={user.profilePicture ? `https://myfeedsave-backend.onrender.com/uploads/${user.profilePicture}` : '/default-avatar.png'}
                                         alt="Profile"
                                         className="w-8 h-8 rounded-full object-cover"
                                     />

@@ -12,7 +12,7 @@ interface SearchUser {
 // Helper function (can be moved to a utils file)
 const getProfilePictureUrl = (filename: string | null | undefined): string | null => {
     if (!filename) return null;
-    return `http://localhost:5000/uploads/${filename}`; // Adjust if path differs
+    return `https://myfeedsave-backend.onrender.com/uploads/${filename}`; // Adjust if path differs
 };
 
 

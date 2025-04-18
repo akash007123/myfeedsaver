@@ -127,13 +127,13 @@ const PostFeed: React.FC = () => {
                         <>
                             {post.mediaType === 'image' ? (
                                 <img
-                                    src={`http://localhost:5000/uploads/posts/${post.mediaUrl}`}
+                                    src={`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`}
                                     alt="Post"
                                     className="w-full h-64 object-cover rounded-lg mb-4"
                                 />
                             ) : (
                                 <video
-                                    src={`http://localhost:5000/uploads/posts/${post.mediaUrl}`}
+                                    src={`https://myfeedsave-backend.onrender.com/uploads/posts/${post.mediaUrl}`}
                                     controls
                                     className="w-full h-64 object-cover rounded-lg mb-4"
                                 />

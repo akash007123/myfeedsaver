@@ -12,7 +12,7 @@ interface FriendRequestUser {
 // Helper function (can be moved to a utils file)
 const getProfilePictureUrl = (filename: string | null | undefined): string | null => {
     if (!filename) return null;
-    return `http://localhost:5000/uploads/${filename}`; // Adjust if path differs
+    return `https://myfeedsave-backend.onrender.com/uploads/${filename}`; // Adjust if path differs
 };
 
 
@@ -61,7 +61,7 @@ const FriendRequestsList: React.FC = () => {
                         <div key={request._id} className="bg-white rounded-lg shadow p-4">
                             <div className="flex items-center space-x-4 mb-4">
                                 <img
-                                    src={request.profilePicture ? `http://localhost:5000/uploads/${request.profilePicture}` : '/default-avatar.png'}
+                                    src={request.profilePicture ? `https://myfeedsave-backend.onrender.com/uploads/${request.profilePicture}` : '/default-avatar.png'}
                                     alt={request.name}
                                     className="w-12 h-12 rounded-full object-cover"
                                 />

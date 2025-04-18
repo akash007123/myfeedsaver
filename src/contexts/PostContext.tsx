@@ -32,7 +32,7 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Configure axios
     const api = axios.create({
-        baseURL: 'http://localhost:5000/api',
+        baseURL: 'https://myfeedsave-backend.onrender.com/api',
         headers: {
             'Authorization': `Bearer ${token}`
         }
