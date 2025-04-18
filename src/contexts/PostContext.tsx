@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../components/AuthContext';
 
@@ -28,17 +28,42 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { token } = useAuth();
+    const { token, logout } = useAuth();
 
-    // Configure axios
-    const api = axios.create({
-        baseURL: 'https://myfeedsave-backend.onrender.com/api',
-        headers: {
-            'Authorization': `Bearer ${token}`
+    // Create API client with current token
+    const api = React.useMemo(() => {
+        if (!token) {
+            return null;
         }
-    });
+
+        const instance = axios.create({
+            baseURL: 'https://myfeedsave-backend.onrender.com/api',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        // Add response interceptor to handle token errors
+        instance.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response?.status === 401) {
+                    setError('Session expired. Please log in again.');
+                    logout();
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return instance;
+    }, [token, logout]);
 
     const fetchUserPosts = useCallback(async () => {
+        if (!api) {
+            setError('Not authenticated');
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -50,9 +75,14 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [api]);
 
     const createPost = async (formData: FormData): Promise<boolean> => {
+        if (!api) {
+            setError('Not authenticated');
+            return false;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -69,6 +99,11 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const updatePost = async (postId: string, formData: FormData): Promise<boolean> => {
+        if (!api) {
+            setError('Not authenticated');
+            return false;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -87,6 +122,11 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const deletePost = async (postId: string): Promise<boolean> => {
+        if (!api) {
+            setError('Not authenticated');
+            return false;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -101,6 +141,16 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
         }
     };
+
+    // Fetch posts when token changes
+    useEffect(() => {
+        if (token) {
+            fetchUserPosts();
+        } else {
+            setPosts([]);
+            setError('Not authenticated');
+        }
+    }, [token, fetchUserPosts]);
 
     return (
         <PostContext.Provider value={{
