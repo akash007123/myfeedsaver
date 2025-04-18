@@ -201,24 +201,9 @@ const Home: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
                         <div className="flex items-center">
-                            <span className="text-xl font-semibold">Dashboard</span>
+                            <span className="text-xl font-semibold">Ujjain Feeds</span>
                         </div>
                         <div className="flex items-center space-x-4">
-                            {/* Display Small Profile Pic in Nav */}
-                            {displayProfilePicUrl ? (
-                                <img
-                                    src={displayProfilePicUrl}
-                                    alt="Profile"
-                                    className="w-8 h-8 rounded-full object-cover"
-                                    onError={(e) => {
-                                        console.error(`[Image Error] Failed to load image: ${displayProfilePicUrl}`, e);
-                                        (e.target as HTMLImageElement).style.border = '2px solid red';
-                                    }}
-                                />
-                            ) : (
-                                <div className="w-8 h-8 rounded-full bg-gray-300"></div>
-                            )}
-                            <span className="hidden sm:block">{user.name}</span>
                             <div className="relative">
                                 <button
                                     onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -227,9 +212,12 @@ const Home: React.FC = () => {
                                     <img
                                         src={user.profilePicture ? `https://myfeedsave-backend.onrender.com/uploads/${user.profilePicture}` : '/default-avatar.png'}
                                         alt="Profile"
-                                        className="w-8 h-8 rounded-full object-cover"
+                                        className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = '/default-avatar.png';
+                                        }}
                                     />
-                                    <span className="hidden sm:block">{user.name}</span>
+                                    <span className="hidden sm:block text-sm font-medium">{user.name}</span>
                                 </button>
                                 
                                 {/* Profile Dropdown Menu */}
@@ -240,13 +228,13 @@ const Home: React.FC = () => {
                                                 setIsProfileOpen(false);
                                                 setIsEditingProfile(true);
                                             }}
-                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                                         >
                                             Edit Profile
                                         </button>
                                         <button
                                             onClick={handleLogout}
-                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                                         >
                                             Logout
                                         </button>
@@ -260,7 +248,7 @@ const Home: React.FC = () => {
 
             {/* --- Profile Edit Modal --- */}
             {isEditingProfile && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full">
                         <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
                         <form onSubmit={handleProfileUpdateSubmit}>
@@ -291,29 +279,34 @@ const Home: React.FC = () => {
                                         type="file"
                                         accept="image/*"
                                         onChange={handleProfileFileChange}
-                                        className="mt-1 block w-full"
+                                        className="mt-1 block w-full text-sm text-gray-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-md file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-blue-50 file:text-blue-700
+                                        hover:file:bg-blue-100"
                                     />
                                     {profilePicturePreview && (
                                         <img
                                             src={profilePicturePreview}
                                             alt="Profile Preview"
-                                            className="mt-2 h-20 w-20 rounded-full object-cover"
+                                            className="mt-2 h-20 w-20 rounded-full object-cover border-2 border-gray-200"
                                         />
                                     )}
                                 </div>
                             </div>
-                            <div className="mt-6 flex justify-end space-x-3">
+                            <div className="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
                                 <button
                                     type="button"
                                     onClick={handleCancelProfileEdit}
-                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isUpdatingProfile}
-                                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
                                 >
                                     {isUpdatingProfile ? 'Updating...' : 'Save Changes'}
                                 </button>
@@ -326,10 +319,10 @@ const Home: React.FC = () => {
             {/* --- Tab Navigation --- */}
             <div className="bg-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-8">
+                    <div className="flex overflow-x-auto space-x-8 py-2">
                         <button
                             onClick={() => setActiveTab('feed')}
-                            className={`px-3 py-4 text-sm font-medium border-b-2 ${
+                            className={`px-3 py-4 text-sm font-medium whitespace-nowrap border-b-2 ${
                                 activeTab === 'feed'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -339,7 +332,7 @@ const Home: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('messages')}
-                            className={`px-3 py-4 text-sm font-medium border-b-2 ${
+                            className={`px-3 py-4 text-sm font-medium whitespace-nowrap border-b-2 ${
                                 activeTab === 'messages'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -349,7 +342,7 @@ const Home: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('search')}
-                            className={`px-3 py-4 text-sm font-medium border-b-2 ${
+                            className={`px-3 py-4 text-sm font-medium whitespace-nowrap border-b-2 ${
                                 activeTab === 'search'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -359,7 +352,7 @@ const Home: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('friends')}
-                            className={`px-3 py-4 text-sm font-medium border-b-2 ${
+                            className={`px-3 py-4 text-sm font-medium whitespace-nowrap border-b-2 ${
                                 activeTab === 'friends'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -369,7 +362,7 @@ const Home: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('requests')}
-                            className={`px-3 py-4 text-sm font-medium border-b-2 ${
+                            className={`px-3 py-4 text-sm font-medium whitespace-nowrap border-b-2 ${
                                 activeTab === 'requests'
                                     ? 'border-blue-500 text-blue-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -385,7 +378,7 @@ const Home: React.FC = () => {
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="px-4 py-6 sm:px-0">
                     {/* Content Container */}
-                    <div className="bg-white rounded-lg shadow p-6">
+                    <div className="bg-white rounded-lg shadow p-4 sm:p-6">
                         {activeTab === 'messages' ? (
                             <Messaging initialConversation={selectedConversation} />
                         ) : (
