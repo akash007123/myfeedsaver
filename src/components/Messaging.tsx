@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { Manager } from 'socket.io-client';
 
 interface Message {
     _id: string;
@@ -43,6 +44,7 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
     const [loading, setLoading] = useState(true);
     const [showConversations, setShowConversations] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const socketRef = useRef<any>(null);
 
     const apiClient = axios.create({
         baseURL: 'https://myfeedsave-backend.onrender.com/api',
@@ -50,6 +52,40 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
             Authorization: `Bearer ${token}`
         }
     });
+
+    // Initialize WebSocket connection
+    useEffect(() => {
+        if (user) {
+            // Connect to WebSocket server
+            const manager = new Manager('https://myfeedsave-backend.onrender.com', {
+                auth: {
+                    token: token
+                }
+            });
+            socketRef.current = manager.socket('/');
+
+            // Listen for new messages
+            socketRef.current.on('newMessage', (message: Message) => {
+                setMessages(prev => [...prev, message]);
+                // Update conversations list
+                fetchConversations();
+            });
+
+            // Listen for message read status
+            socketRef.current.on('messageRead', (data: { messageId: string, read: boolean }) => {
+                setMessages(prev => prev.map(msg => 
+                    msg._id === data.messageId ? { ...msg, read: data.read } : msg
+                ));
+            });
+
+            // Cleanup on unmount
+            return () => {
+                if (socketRef.current) {
+                    socketRef.current.disconnect();
+                }
+            };
+        }
+    }, [user, token]);
 
     const fetchConversations = async () => {
         setLoading(true);
@@ -85,6 +121,11 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
             setMessages(response.data.messages);
             setSelectedConversation(userId);
             setShowConversations(false);
+
+            // Mark messages as read
+            if (socketRef.current) {
+                socketRef.current.emit('markMessagesAsRead', { userId });
+            }
         } catch (error) {
             console.error('Error fetching messages:', error);
             toast.error('Failed to load messages');
@@ -128,6 +169,14 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
             setMessages(prev => prev.map(msg => 
                 msg._id === tempMessage._id ? response.data.data : msg
             ));
+
+            // Emit the message through WebSocket
+            if (socketRef.current) {
+                socketRef.current.emit('sendMessage', {
+                    message: response.data.data,
+                    receiverId: selectedConversation
+                });
+            }
 
             // Update the conversations list
             fetchConversations();
@@ -306,4 +355,4 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
     );
 };
 
-export default Messaging; 
+export default Messaging;
