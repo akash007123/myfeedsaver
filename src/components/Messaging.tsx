@@ -47,12 +47,26 @@ const Messaging: React.FC = () => {
     });
 
     const fetchConversations = async () => {
+        setLoading(true);
         try {
             const response = await apiClient.get('/messages/conversations');
-            setConversations(response.data.conversations);
-        } catch (error) {
+            if (response.data && Array.isArray(response.data.conversations)) {
+                setConversations(response.data.conversations);
+            } else {
+                console.error('Invalid response format:', response.data);
+                toast.error('Invalid response from server');
+                setConversations([]);
+            }
+        } catch (error: any) {
             console.error('Error fetching conversations:', error);
-            toast.error('Failed to load conversations');
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+            }
+            toast.error(error.response?.data?.message || 'Failed to load conversations');
+            setConversations([]);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -103,40 +117,50 @@ const Messaging: React.FC = () => {
                 <div className="p-4 border-b border-gray-200">
                     <h2 className="text-xl font-semibold">Messages</h2>
                 </div>
-                <div className="overflow-y-auto h-[calc(100%-4rem)]">
-                    {conversations.map(conversation => (
-                        <div
-                            key={conversation.user._id}
-                            className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-                                selectedConversation === conversation.user._id ? 'bg-blue-50' : ''
-                            }`}
-                            onClick={() => fetchMessages(conversation.user._id)}
-                        >
-                            <div className="flex items-center space-x-3">
-                                <img
-                                    src={conversation.user.profilePicture 
-                                        ? `https://myfeedsave-backend.onrender.com/uploads/${conversation.user.profilePicture}`
-                                        : '/default-avatar.png'}
-                                    alt={conversation.user.name}
-                                    className="w-10 h-10 rounded-full"
-                                />
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="font-medium">{conversation.user.name}</h3>
-                                        {conversation.unreadCount > 0 && (
-                                            <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                                                {conversation.unreadCount}
-                                            </span>
-                                        )}
+                {loading ? (
+                    <div className="flex justify-center items-center h-[calc(100%-4rem)]">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    </div>
+                ) : conversations.length === 0 ? (
+                    <div className="flex justify-center items-center h-[calc(100%-4rem)] text-gray-500">
+                        No conversations yet
+                    </div>
+                ) : (
+                    <div className="overflow-y-auto h-[calc(100%-4rem)]">
+                        {conversations.map(conversation => (
+                            <div
+                                key={conversation.user._id}
+                                className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
+                                    selectedConversation === conversation.user._id ? 'bg-blue-50' : ''
+                                }`}
+                                onClick={() => fetchMessages(conversation.user._id)}
+                            >
+                                <div className="flex items-center space-x-3">
+                                    <img
+                                        src={conversation.user.profilePicture 
+                                            ? `https://myfeedsave-backend.onrender.com/uploads/${conversation.user.profilePicture}`
+                                            : '/default-avatar.png'}
+                                        alt={conversation.user.name}
+                                        className="w-10 h-10 rounded-full"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="font-medium">{conversation.user.name}</h3>
+                                            {conversation.unreadCount > 0 && (
+                                                <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                                                    {conversation.unreadCount}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-500 truncate">
+                                            {conversation.lastMessage.content}
+                                        </p>
                                     </div>
-                                    <p className="text-sm text-gray-500 truncate">
-                                        {conversation.lastMessage.content}
-                                    </p>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Chat Area */}
