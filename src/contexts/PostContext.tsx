@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../components/AuthContext';
+import { Manager } from 'socket.io-client';
 
 interface Post {
     _id: string;
@@ -29,6 +30,73 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { token, logout } = useAuth();
+    const socketRef = useRef<any>(null);
+
+    // Initialize WebSocket connection
+    useEffect(() => {
+        if (token) {
+            console.log('Initializing WebSocket connection for posts...');
+            
+            const manager = new Manager('https://myfeedsave-backend.onrender.com', {
+                auth: {
+                    token: token
+                },
+                transports: ['websocket'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000
+            });
+
+            socketRef.current = manager.socket('/');
+
+            // Listen for new posts
+            socketRef.current.on('newPost', (post: Post) => {
+                console.log('Received new post:', post);
+                setPosts(prev => {
+                    // Check if post already exists to prevent duplicates
+                    if (!prev.some(p => p._id === post._id)) {
+                        return [post, ...prev];
+                    }
+                    return prev;
+                });
+            });
+
+            // Listen for post updates
+            socketRef.current.on('postUpdated', (updatedPost: Post) => {
+                console.log('Post updated:', updatedPost);
+                setPosts(prev => prev.map(post => 
+                    post._id === updatedPost._id ? updatedPost : post
+                ));
+            });
+
+            // Listen for post deletions
+            socketRef.current.on('postDeleted', (postId: string) => {
+                console.log('Post deleted:', postId);
+                setPosts(prev => prev.filter(post => post._id !== postId));
+            });
+
+            // Connection event handlers
+            socketRef.current.on('connect', () => {
+                console.log('WebSocket connected successfully for posts');
+            });
+
+            socketRef.current.on('connect_error', (error: any) => {
+                console.error('WebSocket connection error:', error);
+                if (error.response?.status === 401) {
+                    logout();
+                }
+            });
+
+            // Cleanup on unmount
+            return () => {
+                console.log('Cleaning up WebSocket connection for posts');
+                if (socketRef.current) {
+                    socketRef.current.disconnect();
+                }
+            };
+        }
+    }, [token, logout]);
 
     // Create API client with current token
     const api = React.useMemo(() => {
@@ -87,6 +155,12 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(true);
             setError(null);
             const response = await api.post('/posts', formData);
+            
+            // Emit the new post through WebSocket
+            if (socketRef.current) {
+                socketRef.current.emit('createPost', response.data.post);
+            }
+            
             setPosts(prev => [response.data.post, ...prev]);
             return true;
         } catch (err: any) {
@@ -108,6 +182,12 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(true);
             setError(null);
             const response = await api.put(`/posts/${postId}`, formData);
+            
+            // Emit the updated post through WebSocket
+            if (socketRef.current) {
+                socketRef.current.emit('updatePost', response.data.post);
+            }
+            
             setPosts(prev => prev.map(post => 
                 post._id === postId ? response.data.post : post
             ));
@@ -131,6 +211,12 @@ export const PostProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(true);
             setError(null);
             await api.delete(`/posts/${postId}`);
+            
+            // Emit the deleted post ID through WebSocket
+            if (socketRef.current) {
+                socketRef.current.emit('deletePost', postId);
+            }
+            
             setPosts(prev => prev.filter(post => post._id !== postId));
             return true;
         } catch (err: any) {

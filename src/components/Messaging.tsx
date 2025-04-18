@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { Manager } from 'socket.io-client';
 
 interface Message {
     _id: string;
@@ -43,6 +44,104 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
     const [loading, setLoading] = useState(true);
     const [showConversations, setShowConversations] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const socketRef = useRef<any>(null);
+    const messageQueueRef = useRef<Message[]>([]);
+    const isProcessingQueueRef = useRef(false);
+
+    // Initialize WebSocket connection
+    useEffect(() => {
+        if (user && token) {
+            console.log('Initializing WebSocket connection for chat...');
+            
+            const manager = new Manager('https://myfeedsave-backend.onrender.com', {
+                auth: {
+                    token: token
+                },
+                transports: ['websocket'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000,
+                forceNew: true,
+                autoConnect: true,
+                multiplex: false
+            });
+
+            socketRef.current = manager.socket('/');
+
+            // Batch message processing
+            const processMessageQueue = () => {
+                if (messageQueueRef.current.length === 0 || isProcessingQueueRef.current) {
+                    return;
+                }
+
+                isProcessingQueueRef.current = true;
+                const messagesToProcess = [...messageQueueRef.current];
+                messageQueueRef.current = [];
+
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    messagesToProcess.forEach(message => {
+                        if (!newMessages.some(msg => msg._id === message._id)) {
+                            newMessages.push(message);
+                        }
+                    });
+                    return newMessages;
+                });
+
+                isProcessingQueueRef.current = false;
+                if (messageQueueRef.current.length > 0) {
+                    setTimeout(processMessageQueue, 0);
+                }
+            };
+
+            // Listen for new messages with batching
+            socketRef.current.on('newMessage', (message: Message) => {
+                messageQueueRef.current.push(message);
+                processMessageQueue();
+                
+                // Update conversations list with debounce
+                debouncedFetchConversations();
+            });
+
+            // Optimized message read status update
+            socketRef.current.on('messageRead', (data: { messageId: string, read: boolean }) => {
+                setMessages(prev => {
+                    const messageIndex = prev.findIndex(msg => msg._id === data.messageId);
+                    if (messageIndex === -1) return prev;
+                    
+                    const newMessages = [...prev];
+                    newMessages[messageIndex] = { ...newMessages[messageIndex], read: data.read };
+                    return newMessages;
+                });
+            });
+
+            // Connection event handlers
+            socketRef.current.on('connect', () => {
+                console.log('WebSocket connected successfully for chat');
+            });
+
+            socketRef.current.on('connect_error', (error: any) => {
+                console.error('WebSocket connection error:', error);
+            });
+
+            // Cleanup on unmount
+            return () => {
+                console.log('Cleaning up WebSocket connection for chat');
+                if (socketRef.current) {
+                    socketRef.current.disconnect();
+                }
+            };
+        }
+    }, [user, token]);
+
+    // Debounced fetch conversations
+    const debouncedFetchConversations = useCallback(
+        debounce(() => {
+            fetchConversations();
+        }, 300),
+        []
+    );
 
     const apiClient = axios.create({
         baseURL: 'https://myfeedsave-backend.onrender.com/api',
@@ -85,6 +184,11 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
             setMessages(response.data.messages);
             setSelectedConversation(userId);
             setShowConversations(false);
+
+            // Mark messages as read
+            if (socketRef.current) {
+                socketRef.current.emit('markMessagesAsRead', { userId });
+            }
         } catch (error) {
             console.error('Error fetching messages:', error);
             toast.error('Failed to load messages');
@@ -95,18 +199,50 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
         e.preventDefault();
         if (!newMessage.trim() || !selectedConversation) return;
 
+        const tempMessage = {
+            _id: `temp-${Date.now()}`,
+            sender: {
+                _id: user?._id || '',
+                name: user?.name || '',
+                profilePicture: user?.profilePicture || null
+            },
+            receiver: {
+                _id: selectedConversation,
+                name: conversations.find(c => c.user._id === selectedConversation)?.user.name || '',
+                profilePicture: conversations.find(c => c.user._id === selectedConversation)?.user.profilePicture || null
+            },
+            content: newMessage,
+            read: false,
+            createdAt: new Date().toISOString()
+        };
+
+        // Optimistic update
+        setMessages(prev => [...prev, tempMessage]);
+        setNewMessage('');
+
         try {
             const response = await apiClient.post('/messages/send', {
                 receiverId: selectedConversation,
                 content: newMessage
             });
 
-            setMessages(prev => [...prev, response.data.data]);
-            setNewMessage('');
-            fetchConversations();
+            // Replace temporary message
+            setMessages(prev => prev.map(msg => 
+                msg._id === tempMessage._id ? response.data.data : msg
+            ));
+
+            if (socketRef.current) {
+                socketRef.current.emit('sendMessage', {
+                    message: response.data.data,
+                    receiverId: selectedConversation
+                });
+            }
+
+            debouncedFetchConversations();
         } catch (error) {
             console.error('Error sending message:', error);
             toast.error('Failed to send message');
+            setMessages(prev => prev.filter(msg => msg._id !== tempMessage._id));
         }
     };
 
@@ -255,5 +391,14 @@ const Messaging: React.FC<MessagingProps> = ({ initialConversation = null }) => 
         </div>
     );
 };
+
+// Debounce helper function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+    let timeout: ReturnType<typeof setTimeout>;
+    return function(this: any, ...args: any[]) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    } as T;
+}
 
 export default Messaging; 
