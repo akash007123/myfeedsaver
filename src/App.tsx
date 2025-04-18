@@ -1,34 +1,29 @@
 import React from 'react';
-import Sidebar from './components/Sidebar';
-import Hero from './components/Hero';
-import About from './components/About';
-import Skills from './components/Skills';
-import Services from './components/Services';
-import Projects from './components/Projects';
-import Achievements from './components/Achievements';
-import Testimonials from './components/Testimonials';
-import Blog from './components/Blog';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './components/AuthContext';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import PrivateRoute from './components/PrivateRoute';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <div className="bg-white">
-      <Sidebar />
-      <main className="md:ml-24">
-        <Hero />
-        <About />
-        <Skills />
-        <Services />
-        <Projects />
-        <Achievements />
-        <Testimonials />
-        <Blog />
-        <Contact />
-        <Footer />
-      </main>
-    </div>
+    <AuthProvider>
+      <Router>
+        <ToastContainer />
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" />} /> 
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/home" element={<PrivateRoute />}>
+            <Route index element={<Home />} />
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
-}
+};
 
 export default App;
